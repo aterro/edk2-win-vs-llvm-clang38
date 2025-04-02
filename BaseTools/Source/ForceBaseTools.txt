@@ -1,0 +1,20 @@
+## @file
+# This file is to indicate to the RefindPlus Build Script that BaseTools should
+# be rebuilt.
+#
+# The indication is done by changing the contents of this file and by extension,
+# its shasum value. A Timestamp (GMT) is used for this
+#
+# Copyright (c) 2025 Dayo Akanji.<BR>
+#
+# This program and the accompanying materials are licensed and made available under
+# the terms and conditions of the BSD License which accompanies this distribution.
+# The full text of the license may be found at:
+#   http://opensource.org/licenses/bsd-license.php
+#
+# THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+# WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+##
+
+25-03-30 17:42:00 GMT

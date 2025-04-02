@@ -4,7 +4,7 @@
  # RepoUpdater.sh
  # A script to sync the RefindPlus and RefindPlusUDK Repos with upstream
  #
- # Copyright (c) 2020-2021 Dayo Akanji
+ # Copyright (c) 2020-2025 Dayo Akanji
  # MIT License
 ###
 
@@ -83,6 +83,15 @@ SyncRepo() {
         return 0
     fi
     git reset --hard "${resetSHA}"
+
+    if [ "${EXIT_CALL}" == 'true' ] ; then
+        return 0
+    fi
+    if [ "${OUR_BRANCH}" == 'GOPFix' ] ; then
+        (git remote get-url upstream 2>/dev/null | grep -q "https://github.com/RefindPlusRepo/RefindPlus.git") || (git remote remove upstream && git remote add upstream https://github.com/RefindPlusRepo/RefindPlus.git 2>/dev/null)
+    else
+        (git remote get-url upstream 2>/dev/null | grep -q "https://github.com/RefindPlusRepo/RefindPlusUDK.git") || (git remote remove upstream && git remote add upstream https://github.com/RefindPlusRepo/RefindPlusUDK.git 2>/dev/null)
+    fi
 
     if [ "${EXIT_CALL}" == 'true' ] ; then
         return 0

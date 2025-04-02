@@ -14,14 +14,20 @@
 #
 # THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 # WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+##
+
+##
+#  Modified for RefindPlus
+#  Copyright (c) 2025 Dayo Akanji (sf.net/u/dakanji/profile)
+#
+#  Modifications distributed under the preceding terms.
+##
 
 ifndef HOST_ARCH
   #
-  # If HOST_ARCH is not defined, then we use 'uname -m' to attempt
-  # try to figure out the appropriate HOST_ARCH.
+  # If HOST_ARCH is not defined, try to figure this out with 'uname -m'
   #
   uname_m = $(shell uname -m)
-  $(info Attempting to detect HOST_ARCH from 'uname -m': $(uname_m))
   ifneq (,$(strip $(filter $(uname_m), x86_64 amd64)))
     HOST_ARCH=X64
   endif
@@ -32,13 +38,17 @@ ifndef HOST_ARCH
     HOST_ARCH=AARCH64
   endif
   ifneq (,$(findstring arm,$(uname_m)))
-    HOST_ARCH=ARM
+    ifeq ($(DARWIN),Darwin)
+	  # DA-TAG: Force to x64 to work around build issues
+      HOST_ARCH=X64
+    else
+      HOST_ARCH=ARM
+    endif
   endif
   ifndef HOST_ARCH
-    $(info Could not detected HOST_ARCH from uname results)
+    $(info Could not detect HOST_ARCH from uname results)
     $(error HOST_ARCH is not defined!)
   endif
-  $(info Detected HOST_ARCH of $(HOST_ARCH) using uname.)
 endif
 
 CYGWIN:=$(findstring CYGWIN, $(shell uname -s))
@@ -67,22 +77,22 @@ else
 $(error Bad HOST_ARCH)
 endif
 
-INCLUDE = $(TOOL_INCLUDE) -I $(MAKEROOT) -I $(MAKEROOT)/Include/Common -I $(MAKEROOT)/Include/ -I $(MAKEROOT)/Include/IndustryStandard -I $(MAKEROOT)/Common/ -I .. -I . $(ARCH_INCLUDE) 
+INCLUDE = $(TOOL_INCLUDE) -I $(MAKEROOT) -I $(MAKEROOT)/Include/Common -I $(MAKEROOT)/Include/ -I $(MAKEROOT)/Include/IndustryStandard -I $(MAKEROOT)/Common/ -I .. -I . $(ARCH_INCLUDE)
 BUILD_CPPFLAGS = $(INCLUDE) -O2
 ifeq ($(DARWIN),Darwin)
 # assume clang or clang compatible flags on OS X
-BUILD_CFLAGS = -MD -fshort-wchar -fno-strict-aliasing -Wall -Wno-error -Wno-deprecated-declarations -Wno-self-assign -Wno-unused-result -nostdlib -c -g
+BUILD_CFLAGS = -MD -fshort-wchar -fno-strict-aliasing -Wall -Wno-error -Wno-deprecated-declarations -Wno-unused-result -Wno-int-to-pointer-cast -Wno-self-assign -nostdlib -c -g
 else
-BUILD_CFLAGS = -MD -fshort-wchar -fno-strict-aliasing -Wall -Wno-error -Wno-deprecated-declarations -Wno-unused-result -nostdlib -c -g
+BUILD_CFLAGS = -MD -fshort-wchar -fno-strict-aliasing -Wall -Wno-error -Wno-deprecated-declarations -Wno-unused-result -Wno-int-to-pointer-cast -nostdlib -c -g
 endif
 BUILD_LFLAGS =
 BUILD_CXXFLAGS = -Wno-unused-result -Wno-error
 
 ifeq ($(HOST_ARCH), IA32)
 #
-# Snow Leopard  is a 32-bit and 64-bit environment. uname -m returns i386, but gcc defaults 
+# Snow Leopard  is a 32-bit and 64-bit environment. uname -m returns i386, but gcc defaults
 #  to x86_64. So make sure tools match uname -m. You can manual have a 64-bit kernal on Snow Leopard
-#  so only do this is uname -m returns i386.
+#  so only do this if uname -m returns i386.
 #
 ifeq ($(DARWIN),Darwin)
   BUILD_CFLAGS   += -arch i386
@@ -91,7 +101,7 @@ ifeq ($(DARWIN),Darwin)
 endif
 endif
 
-  
+
 .PHONY: all
 .PHONY: install
 .PHONY: clean
@@ -99,7 +109,7 @@ endif
 all:
 
 $(MAKEROOT)/libs:
-	mkdir $(MAKEROOT)/libs 
+	mkdir $(MAKEROOT)/libs
 
 $(MAKEROOT)/bin:
 	mkdir $(MAKEROOT)/bin

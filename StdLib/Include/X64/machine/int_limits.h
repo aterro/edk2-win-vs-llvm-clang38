@@ -58,7 +58,10 @@
 #define INT64_MAX 0x7fffffffffffffffLL   /* int64_t    */
 
 /* maximum values of exact-width unsigned integer types */
+#ifndef UINT8_MAX
 #define UINT8_MAX 0xffU       /* uint8_t    */
+#endif
+
 #define UINT16_MAX  0xffffU       /* uint16_t   */
 #define UINT32_MAX  0xffffffffU     /* uint32_t   */
 #define UINT64_MAX  0xffffffffffffffffULL    /* uint64_t   */

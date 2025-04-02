@@ -32,7 +32,7 @@
 
 #if _MSC_EXTENSIONS
   //
-  // use Microsoft* C complier dependent integer width types 
+  // use Microsoft* C complier dependent integer width types
   //
   typedef unsigned __int64    UINT64;
   typedef __int64             INT64;
@@ -61,7 +61,9 @@
   typedef char                CHAR8;
   typedef signed char         INT8;
 
+  #ifndef UINT8_MAX
   #define UINT8_MAX 0xff
+  #endif
 #endif
 
 ///
@@ -124,21 +126,21 @@ typedef INT64   INTN;
 
     #define GCC_ASM_EXPORT(func__)  \
              .global  _CONCATENATE (__USER_LABEL_PREFIX__, func__)    ;\
-             .type ASM_PFX(func__), %function  
+             .type ASM_PFX(func__), %function
 
     #define GCC_ASM_IMPORT(func__)  \
              .extern  _CONCATENATE (__USER_LABEL_PREFIX__, func__)
-             
+
   #else
     //
-    // .type not supported by Apple Xcode tools 
+    // .type not supported by Apple Xcode tools
     //
-    #define INTERWORK_FUNC(func__)  
+    #define INTERWORK_FUNC(func__)
 
     #define GCC_ASM_EXPORT(func__)  \
              .globl  _CONCATENATE (__USER_LABEL_PREFIX__, func__)    \
-  
-    #define GCC_ASM_IMPORT(name)  
+
+    #define GCC_ASM_IMPORT(name)
 
   #endif
 #endif
@@ -156,4 +158,3 @@ typedef INT64   INTN;
 #define FUNCTION_ENTRY_POINT(FunctionPointer) (VOID *)(UINTN)(FunctionPointer)
 
 #endif
-

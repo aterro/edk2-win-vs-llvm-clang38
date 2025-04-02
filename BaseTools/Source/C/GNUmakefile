@@ -10,15 +10,20 @@
 #
 #  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 #  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+##
+
+##
+#  Modified for RefindPlus
+#  Copyright (c) 2025 Dayo Akanji (sf.net/u/dakanji/profile)
 #
+#  Modifications distributed under the preceding terms.
+##
 
 ifndef HOST_ARCH
   #
-  # If HOST_ARCH is not defined, then we use 'uname -m' to attempt
-  # try to figure out the appropriate HOST_ARCH.
+  # If HOST_ARCH is not defined, try to figure this out with 'uname -m'
   #
   uname_m = $(shell uname -m)
-  $(info Attempting to detect HOST_ARCH from 'uname -m': $(uname_m))
   ifneq (,$(strip $(filter $(uname_m), x86_64 amd64)))
     HOST_ARCH=X64
   endif
@@ -29,13 +34,17 @@ ifndef HOST_ARCH
     HOST_ARCH=AARCH64
   endif
   ifneq (,$(findstring arm,$(uname_m)))
-    HOST_ARCH=ARM
+    ifeq ($(DARWIN),Darwin)
+      # DA-TAG: Force to x64 to work around build issues
+      HOST_ARCH=X64
+    else
+      HOST_ARCH=ARM
+    endif
   endif
   ifndef HOST_ARCH
-    $(info Could not detected HOST_ARCH from uname results)
+    $(info Could not detect HOST_ARCH from uname results)
     $(error HOST_ARCH is not defined!)
   endif
-  $(info Detected HOST_ARCH of $(HOST_ARCH) using uname.)
 endif
 
 export HOST_ARCH
@@ -88,7 +97,7 @@ $(SUBDIRS):
 $(patsubst %,%-clean,$(sort $(SUBDIRS))):
 	-$(MAKE) -C $(@:-clean=) clean
 
-$(VFRAUTOGEN): VfrCompile/VfrSyntax.g 
+$(VFRAUTOGEN): VfrCompile/VfrSyntax.g
 	$(MAKE) -C VfrCompile VfrLexer.h
 
 clean:  $(patsubst %,%-clean,$(sort $(SUBDIRS)))

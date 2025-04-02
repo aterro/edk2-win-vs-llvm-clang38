@@ -3,7 +3,7 @@
  # RefindPlusBuilder.sh
  # A script to build RefindPlus
  #
- # Copyright (c) 2020-2024 Dayo Akanji
+ # Copyright (c) 2020-2025 Dayo Akanji
  # MIT-0 License
 ###
 
@@ -40,16 +40,13 @@ msg_error() {
 
 ## REVERT WORD_WRAP FIX ##
 RevertWordWrap() {
+    export PATH="${ORIG_PATH}";
+    if [ -f "${MAKEFILE_ORIG}" ] ; then
+        mv -f "${MAKEFILE_ORIG}" "${MAKEFILE_BASE}" || true
+    fi
     if [ "${WORD_WRAP}" == '0' ] ; then
         # Enable WordWrap
         tput smam
-    fi
-}
-
-## REVERT SHASUM FIX ##
-RevertShasumFix() {
-    if [ "${SHASUM_FIX}" == 'true' ] ; then
-        mv -f "${TMP_SHASUM}" "${DUP_SHASUM}"
     fi
 }
 
@@ -57,9 +54,6 @@ RevertShasumFix() {
 trapINT() { # $1: message
     # Declare Local Variables
     local errMessage
-
-    # In case it was stopped while shasum is unset
-    RevertShasumFix ;
 
     # Revert Word Wrap Fix
     RevertWordWrap ;
@@ -77,9 +71,6 @@ runErr() { # $1: message
     # Declare Local Variables
     local errMessage
 
-    # In case it failed while shasum is unset
-    RevertShasumFix ;
-
     # Revert Word Wrap Fix
     RevertWordWrap ;
 
@@ -96,6 +87,7 @@ trap trapINT SIGINT
 
 
 # Set Script Params
+ORIG_PATH="${PATH}"
 DONE_ONE="False"
 
 BUILD_BRANCH="${1:-GOPFix}"
@@ -116,7 +108,9 @@ fi
 if [ "${BUILD_TYPE}" == 'REL' ] || [ "${BUILD_TYPE}" == 'NPT' ] ; then
     RUN_DBG="False"
 fi
-if [ "${BUILD_TYPE}" == 'ALL' ] || [ "${BUILD_TYPE}" == 'NPT' ] || ( [ "${BUILD_TYPE}" != 'REL' ] && [ "${BUILD_TYPE}" != 'DBG' ] && [ "${BUILD_TYPE}" != 'SOME' ] ) ; then
+if [ "${BUILD_TYPE}" == 'ALL' ] || [ "${BUILD_TYPE}" == 'NPT' ] \
+|| ([ "${BUILD_TYPE}" != 'REL' ] && [ "${BUILD_TYPE}" != 'DBG' ] && \
+    [ "${BUILD_TYPE}" != 'SOME' ]) ; then
     RUN_NPT="True"
 fi
 
@@ -139,16 +133,12 @@ BINARY_DIR_DBG="${XCODE_DIR_DBG}/X64"
 BINARY_DIR_NPT="${XCODE_DIR_NPT}/X64"
 OUTPUT_DIR="${EDK2_DIR}/000-BOOTx64-Files"
 OUR_SHASUM='/usr/bin/shasum'
-DUP_SHASUM='/usr/local/bin/shasum'
-TMP_SHASUM='/usr/local/bin/_shasum'
+MAKEFILE_BASE="${EDK2_DIR}/BaseTools/Source/C/Makefiles/header.makefile"
+MAKEFILE_ORIG="${EDK2_DIR}/BaseTools/Source/C/Makefiles/header.makefile-orig"
+
 
 ErrMsg="ERROR: Could not find '${EDK2_DIR}/BaseTools'"
 pushd "${EDK2_DIR}/BaseTools" > /dev/null || runErr "${ErrMsg}"
-SHASUM_FIX='false'
-if [ -f "${DUP_SHASUM}" ] ; then
-    mv -f "${DUP_SHASUM}" "${TMP_SHASUM}"
-    SHASUM_FIX='true'
-fi
 BASETOOLS_SHA_FILE="${EDK2_DIR}/000-BuildScript/BaseToolsSHA.txt"
 if [ ! -f "${BASETOOLS_SHA_FILE}" ] ; then
     BASETOOLS_SHA_OLD='Default'
@@ -156,23 +146,32 @@ else
     # shellcheck disable=SC1090
     source "${BASETOOLS_SHA_FILE}" || BASETOOLS_SHA_OLD='Default'
 fi
-Get_Sha_Str="$(find . -type f \( -name '*.c' -or -name '*.cpp' -or -name '*.h' -or -name '*.py' -or -name '*.makefile' -or -name 'GNUmakefile' \) -print0 | sort -z | xargs -0 ${OUR_SHASUM} | ${OUR_SHASUM} | cut -d ' ' -f 1)"
-RevertShasumFix ;
+Get_Sha_Str="$(find "${EDK2_DIR}/BaseTools" "${EDK2_DIR}/Conf" \
+  -type f \( -name '*.c' -or -name '*.cpp' -or -name '*.h' -or -name '*.py' -or \
+  -name '*.txt' -or -name '*.template' -or -name '*.makefile' -or -name 'GNUmakefile' \) \
+  -print0 | sort -z | xargs -0 ${OUR_SHASUM} | ${OUR_SHASUM} | cut -d ' ' -f 1)"
 Get_Mac_Ver="$( sysctl kern.osrelease | cut -d ':' -f 2 | xargs )"
 BASETOOLS_SHA_NEW="${Get_Sha_Str}:${Get_Mac_Ver}"
 BUILD_TOOLS='false'
-if [ ! -d "${EDK2_DIR}/BaseTools/Source/C/bin" ] || [ "${BASETOOLS_SHA_NEW}" != "${BASETOOLS_SHA_OLD}" ] ; then
+if [ ! -d "${EDK2_DIR}/BaseTools/Source/C/bin" ] \
+|| [ "${BASETOOLS_SHA_NEW}" != "${BASETOOLS_SHA_OLD}" ] ; then
     BUILD_TOOLS='true'
-    echo '#!/usr/bin/env bash' > "${BASETOOLS_SHA_FILE}"
-    echo "BASETOOLS_SHA_OLD='${BASETOOLS_SHA_NEW}'" >> "${BASETOOLS_SHA_FILE}"
+    if [ -f "${BASETOOLS_SHA_FILE}" ] ; then
+        rm -f "${BASETOOLS_SHA_FILE}"
+    fi
 fi
-popd > /dev/null || exit 1
+popd > /dev/null || true
+
+msg_base 'Export Temp "PATH"...'
+export PATH="/usr/bin:/opt/local/bin:/opt/local/sbin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:${PATH}"
+msg_status '...OK'; echo ''
 
 ErrMsg="ERROR: Could not find '${WORK_DIR}'"
 pushd "${WORK_DIR}" > /dev/null || runErr "${ErrMsg}"
 msg_base "Checkout '${BUILD_BRANCH}' branch..."
 git checkout ${BUILD_BRANCH} > /dev/null
 msg_status '...OK'; echo ''
+
 msg_base 'Update RefindPlusPkg...'
 # Remove Later - START #
 rm -fr "${EDK2_DIR}/RefindPkg"
@@ -183,7 +182,7 @@ if [ ! -L "${EDK2_DIR}/RefindPlusPkg" ]; then
     ln -s "${WORK_DIR}" "${EDK2_DIR}/RefindPlusPkg"
 fi
 msg_status '...OK'; echo ''
-popd > /dev/null || exit 1
+popd > /dev/null || true
 
 if [ "${BUILD_TOOLS}" == 'true' ] ; then
     ErrMsg="ERROR: Could not find '${EDK2_DIR}/BaseTools/Source/C'"
@@ -191,30 +190,62 @@ if [ "${BUILD_TOOLS}" == 'true' ] ; then
     msg_base 'Make Clean...'
     make clean
     msg_status '...OK'; echo ''
-    popd > /dev/null || exit 1
+    popd > /dev/null || true
+
+    msg_base 'Update Temp Makefile...'
+    if [ -f "${MAKEFILE_ORIG}" ] ; then
+        cp -f "${MAKEFILE_ORIG}" "${MAKEFILE_BASE}"
+    else
+        cp -f "${MAKEFILE_BASE}" "${MAKEFILE_ORIG}"
+    fi
+    CFLAGS=-Wno-pointer-to-int-cast
+    BUILD_CFLAGS+=($CFLAGS)
+    BUILD_CXXFLAGS+=($CFLAGS)
+    #CC_FLAGS+=($CFLAGS)
+    (
+      echo ""
+      echo "BUILD_CFLAGS += $BUILD_CFLAGS"
+      echo "BUILD_CXXFLAGS += $BUILD_CXXFLAGS"
+    ) >> "${MAKEFILE_BASE}"
+    msg_status '...OK'; echo ''
 
     ErrMsg="ERROR: Could not find '${EDK2_DIR}'"
     pushd "${EDK2_DIR}" > /dev/null || runErr "${ErrMsg}"
     msg_base 'Make BaseTools...'
     make -C BaseTools/Source/C
+    echo '#!/usr/bin/env bash' > "${BASETOOLS_SHA_FILE}"
+    echo "BASETOOLS_SHA_OLD='${BASETOOLS_SHA_NEW}'" >> "${BASETOOLS_SHA_FILE}"
     msg_status '...OK'; echo ''
-    popd > /dev/null || exit 1
+    popd > /dev/null || true
+
+    msg_base 'Update BaseTools SHA...'
+    echo '#!/usr/bin/env bash' > "${BASETOOLS_SHA_FILE}"
+    echo "BASETOOLS_SHA_OLD='${BASETOOLS_SHA_NEW}'" >> "${BASETOOLS_SHA_FILE}"
+    msg_status '...OK'; echo ''
+
+    msg_base 'Discard Temp Makefile...'
+    if [ -f "${MAKEFILE_ORIG}" ] ; then
+        mv -f "${MAKEFILE_ORIG}" "${MAKEFILE_BASE}" || true
+    fi
+    msg_status '...OK'; echo ''
 fi
 
 
 # Basic clean up
+echo ''
 clear
 msg_info "## RefindPlusBuilder - Initial Clean Up ##  :  ${BUILD_BRANCH}"
 msg_info '##--------------------------------------##'
+msg_base 'Misc Item Fixup...'
 rm -fr "${EDK2_DIR}/Build"
 rm -fr "${OUTPUT_DIR}"
 mkdir -p "${EDK2_DIR}/Build"
 mkdir -p "${OUTPUT_DIR}"
-
-
+msg_status '...OK'; echo ''
 
 # Build RELEASE version
 if [ "${RUN_REL}" == 'True' ] ; then
+    echo ''
     clear
     msg_info "## RefindPlusBuilder - Building REL Version ##  :  ${BUILD_BRANCH}"
     msg_info '##------------------------------------------##'
@@ -225,7 +256,15 @@ if [ "${RUN_REL}" == 'True' ] ; then
     if [ -d "${EDK2_DIR}/Build" ] ; then
         cp "${BINARY_DIR_REL}/RefindPlus.efi" "${OUTPUT_DIR}/BOOTx64-REL.efi"
     fi
-    popd > /dev/null || exit 1
+    for file in "${BINARY_DIR_REL}"/*.efi; do
+        filetag=$(basename "${file%.efi}")
+        if [[ "${filetag}" == 'gptsync' || "${filetag}" == 'RefindPlus' ]]; then
+            mv "${file}" "${BINARY_DIR_REL}/x64_${filetag}_REL.efi"
+        else
+            mv "${file}" "${BINARY_DIR_REL}/DRIVER_REL--x64_${filetag}.efi"
+        fi
+    done
+    popd > /dev/null || true
     echo ''
     msg_info "Completed REL Build on '${BUILD_BRANCH}' Branch of RefindPlus"
     DONE_ONE="True"
@@ -250,7 +289,15 @@ if [ "${RUN_DBG}" == 'True' ] ; then
     if [ -d "${EDK2_DIR}/Build" ] ; then
         cp -f "${BINARY_DIR_DBG}/RefindPlus.efi" "${OUTPUT_DIR}/BOOTx64-DBG.efi"
     fi
-    popd > /dev/null || exit 1
+    for file in "${BINARY_DIR_DBG}"/*.efi; do
+        filetag=$(basename "${file%.efi}")
+        if [[ "${filetag}" == 'gptsync' || "${filetag}" == 'RefindPlus' ]]; then
+            mv "${file}" "${BINARY_DIR_DBG}/x64_${filetag}_DBG.efi"
+        else
+            mv "${file}" "${BINARY_DIR_DBG}/DRIVER_DBG--x64_${filetag}.efi"
+        fi
+    done
+    popd > /dev/null || true
     echo ''
     msg_info "Completed DBG Build on '${BUILD_BRANCH}' Branch of RefindPlus"
     DONE_ONE="True"
@@ -275,7 +322,15 @@ if [ "${RUN_NPT}" == 'True' ] ; then
     if [ -d "${EDK2_DIR}/Build" ] ; then
         cp -f "${BINARY_DIR_NPT}/RefindPlus.efi" "${OUTPUT_DIR}/BOOTx64-NPT.efi"
     fi
-    popd > /dev/null || exit 1
+    for file in "${BINARY_DIR_NPT}"/*.efi; do
+        filetag=$(basename "${file%.efi}")
+        if [[ "${filetag}" == 'gptsync' || "${filetag}" == 'RefindPlus' ]]; then
+            mv "${file}" "${BINARY_DIR_NPT}/x64_${filetag}_NPT.efi"
+        else
+            mv "${file}" "${BINARY_DIR_NPT}/DRIVER_NPT--x64_${filetag}.efi"
+        fi
+    done
+    popd > /dev/null || true
     echo ''
     msg_info "Completed NPT Build on '${BUILD_BRANCH}' Branch of RefindPlus"
     DONE_ONE="True"
