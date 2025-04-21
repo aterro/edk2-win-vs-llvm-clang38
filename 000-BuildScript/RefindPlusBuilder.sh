@@ -42,7 +42,7 @@ msg_error() {
 RevertWordWrap() {
     export PATH="${ORIG_PATH}";
     if [ -f "${MAKEFILE_ORIG}" ] ; then
-        mv -f "${MAKEFILE_ORIG}" "${MAKEFILE_BASE}" || true
+        mv -f "${MAKEFILE_ORIG}" "${MAKEFILE_TEMP}" || true
     fi
     if [ "${WORD_WRAP}" == '0' ] ; then
         # Enable WordWrap
@@ -133,9 +133,10 @@ BINARY_DIR_DBG="${XCODE_DIR_DBG}/X64"
 BINARY_DIR_NPT="${XCODE_DIR_NPT}/X64"
 OUTPUT_DIR="${EDK2_DIR}/000-BOOTx64-Files"
 OUR_SHASUM='/usr/bin/shasum'
-MAKEFILE_BASE="${EDK2_DIR}/BaseTools/Source/C/Makefiles/header.makefile"
-MAKEFILE_ORIG="${EDK2_DIR}/BaseTools/Source/C/Makefiles/header.makefile-orig"
-
+MAKEFILE_TEMP="${EDK2_DIR}/BaseTools/Source/C/Makefiles/header.makefile"
+MAKEFILE_ORIG="${EDK2_DIR}/BaseTools/Source/C/Makefiles/header-orig.makefile"
+BASETYPE_TEMP="${EDK2_DIR}/BaseTools/Source/C/Include/Common/BaseTypes.h"
+BASETYPE_ORIG="${EDK2_DIR}/BaseTools/Source/C/Include/Common/BaseTypes-orig.h"
 
 ErrMsg="ERROR: Could not find '${EDK2_DIR}/BaseTools'"
 pushd "${EDK2_DIR}/BaseTools" > /dev/null || runErr "${ErrMsg}"
@@ -170,6 +171,7 @@ ErrMsg="ERROR: Could not find '${WORK_DIR}'"
 pushd "${WORK_DIR}" > /dev/null || runErr "${ErrMsg}"
 msg_base "Checkout '${BUILD_BRANCH}' branch..."
 git checkout ${BUILD_BRANCH} > /dev/null
+popd > /dev/null || true
 msg_status '...OK'; echo ''
 
 msg_base 'Update RefindPlusPkg...'
@@ -182,8 +184,10 @@ if [ ! -L "${EDK2_DIR}/RefindPlusPkg" ]; then
     ln -s "${WORK_DIR}" "${EDK2_DIR}/RefindPlusPkg"
 fi
 msg_status '...OK'; echo ''
-popd > /dev/null || true
 
+# Enter EDK2 Dir - START #
+ErrMsg="ERROR: Could not enter '${EDK2_DIR}'"
+pushd "${EDK2_DIR}" > /dev/null || runErr "${ErrMsg}"
 if [ "${BUILD_TOOLS}" == 'true' ] ; then
     ErrMsg="ERROR: Could not find '${EDK2_DIR}/BaseTools/Source/C'"
     pushd "${EDK2_DIR}/BaseTools/Source/C" > /dev/null || runErr "${ErrMsg}"
@@ -192,44 +196,66 @@ if [ "${BUILD_TOOLS}" == 'true' ] ; then
     msg_status '...OK'; echo ''
     popd > /dev/null || true
 
-    msg_base 'Update Temp Makefile...'
-    if [ -f "${MAKEFILE_ORIG}" ] ; then
-        cp -f "${MAKEFILE_ORIG}" "${MAKEFILE_BASE}"
-    else
-        cp -f "${MAKEFILE_BASE}" "${MAKEFILE_ORIG}"
-    fi
-    CFLAGS=-Wno-pointer-to-int-cast
-    BUILD_CFLAGS+=($CFLAGS)
-    BUILD_CXXFLAGS+=($CFLAGS)
-    #CC_FLAGS+=($CFLAGS)
-    (
-      echo ""
-      echo "BUILD_CFLAGS += $BUILD_CFLAGS"
-      echo "BUILD_CXXFLAGS += $BUILD_CXXFLAGS"
-    ) >> "${MAKEFILE_BASE}"
-    msg_status '...OK'; echo ''
+    OurArch="$(uname -m)"
+    if [[ "${OurArch}" == *"arm"* ]] ; then
+        msg_base 'Create Temp BaseTools BaseType for Apple Silicon...'
+        if [ -f "${BASETYPE_ORIG}" ] ; then
+            cp -f "${BASETYPE_ORIG}" "${BASETYPE_TEMP}"
+        else
+            cp -f "${BASETYPE_TEMP}" "${BASETYPE_ORIG}"
+        fi
 
-    ErrMsg="ERROR: Could not find '${EDK2_DIR}'"
-    pushd "${EDK2_DIR}" > /dev/null || runErr "${ErrMsg}"
+        # Apply patch if not already patched
+        if grep -q '#include <ProcessorBind.h>' "${BASETYPE_TEMP}"; then
+            sed -i '' 's|#include <ProcessorBind.h>|#include "../AArch64/ProcessorBind.h"|' "${BASETYPE_TEMP}"
+        fi
+        msg_status '...OK'; echo ''
+
+        msg_base 'Create Temp BaseTools Makefile for Apple Silicon...'
+        if [ -f "${MAKEFILE_ORIG}" ] ; then
+            cp -f "${MAKEFILE_ORIG}" "${MAKEFILE_TEMP}"
+        else
+            cp -f "${MAKEFILE_TEMP}" "${MAKEFILE_ORIG}"
+        fi
+        CFLAGS=-Wno-pointer-to-int-cast
+        BUILD_CFLAGS+=($CFLAGS)
+        BUILD_CXXFLAGS+=($CFLAGS)
+        #CC_FLAGS+=($CFLAGS)
+        (
+            echo ""
+            echo "BUILD_CFLAGS += $BUILD_CFLAGS"
+            echo "BUILD_CXXFLAGS += $BUILD_CXXFLAGS"
+        ) >> "${MAKEFILE_TEMP}"
+        msg_status '...OK'; echo ''
+    fi
+
     msg_base 'Make BaseTools...'
     make -C BaseTools/Source/C
     echo '#!/usr/bin/env bash' > "${BASETOOLS_SHA_FILE}"
     echo "BASETOOLS_SHA_OLD='${BASETOOLS_SHA_NEW}'" >> "${BASETOOLS_SHA_FILE}"
     msg_status '...OK'; echo ''
-    popd > /dev/null || true
 
     msg_base 'Update BaseTools SHA...'
     echo '#!/usr/bin/env bash' > "${BASETOOLS_SHA_FILE}"
     echo "BASETOOLS_SHA_OLD='${BASETOOLS_SHA_NEW}'" >> "${BASETOOLS_SHA_FILE}"
     msg_status '...OK'; echo ''
 
-    msg_base 'Discard Temp Makefile...'
-    if [ -f "${MAKEFILE_ORIG}" ] ; then
-        mv -f "${MAKEFILE_ORIG}" "${MAKEFILE_BASE}" || true
-    fi
-    msg_status '...OK'; echo ''
-fi
+    if [[ "${OurArch}" == *"arm"* ]] ; then
+        if [ -f "${BASETYPE_ORIG}" ] ; then
+            msg_base 'Discard Temp BaseType...'
+            mv -f "${BASETYPE_ORIG}" "${BASETYPE_TEMP}" || true
+            msg_status '...OK'; echo ''
+        fi
 
+        if [ -f "${MAKEFILE_ORIG}" ] ; then
+            msg_base 'Discard Temp Makefile...'
+            mv -f "${MAKEFILE_ORIG}" "${MAKEFILE_TEMP}" || true
+            msg_status '...OK'; echo ''
+        fi
+    fi
+fi
+popd > /dev/null || true
+# Enter EDK2 Dir - END #
 
 # Basic clean up
 echo ''

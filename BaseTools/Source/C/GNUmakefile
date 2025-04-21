@@ -35,8 +35,8 @@ ifndef HOST_ARCH
   endif
   ifneq (,$(findstring arm,$(uname_m)))
     ifeq ($(DARWIN),Darwin)
-      # DA-TAG: Force to x64 to work around build issues
-      HOST_ARCH=X64
+      # DA-TAG: Adjust for Apple Silicon
+      HOST_ARCH=AARCH64
     else
       HOST_ARCH=ARM
     endif
