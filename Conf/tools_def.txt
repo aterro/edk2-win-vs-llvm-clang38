@@ -5769,7 +5769,7 @@ DEFINE CLANG38_X64_PREFIX           = C:/LLVM/bin/
 
 DEFINE CLANG38_IA32_TARGET          = -target i686-pc-linux-gnu
 DEFINE CLANG38_X64_TARGET           = -target x86_64-pc-linux-gnu
-DEFINE CLANG38_X64_DLINK_FLAGS_COMMON = -nostdlib -Wl,--gc-sections -Wl,-melf_x86_64 -Wl,--oformat=elf64-x86-64 -Wl,--no-pie -Wl,-z,relro=off -mcmodel=small -Oz -Wl,--entry,$(IMAGE_ENTRY_POINT) -u $(IMAGE_ENTRY_POINT) -z common-page-size=0x40 -Wl,--icf=all -Wl,--strip-debug -Wl,--emit-relocs
+DEFINE CLANG38_X64_DLINK_FLAGS_COMMON = -nostdlib -Wl,--gc-sections -Wl,-melf_x86_64 -Wl,--oformat=elf64-x86-64 -Wl,--no-pie -mcmodel=small -Oz -Wl,--entry,$(IMAGE_ENTRY_POINT) -u $(IMAGE_ENTRY_POINT) -z max-page-size=0x1000 -Wl,--icf=all -Wl,--strip-debug -Wl,--emit-relocs
 
 DEFINE CLANG38_WARNING_OVERRIDES    = -Wno-parentheses-equality -Wno-tautological-compare -Wno-tautological-constant-out-of-range-compare -Wno-empty-body -Wno-unused-const-variable -Wno-unused-but-set-variable -Wno-varargs -Wno-unknown-warning-option -Wno-return-type -Wno-unused-variable
 DEFINE CLANG38_ALL_CC_FLAGS         = -fshort-wchar -fno-builtin -fno-strict-aliasing -Wall -Werror -Wno-array-bounds -ffunction-sections -fdata-sections -include AutoGen.h -fno-common -DSTRING_ARRAY_NAME=$(BASE_NAME)Strings -D__BUILDING_ON_WINDOWS__=1 DEF(CLANG38_WARNING_OVERRIDES) -fno-stack-protector -mms-bitfields -Wno-address -Wno-shift-negative-value -Wno-unknown-pragmas -Wno-incompatible-library-redeclaration -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-exceptions -mno-sse -mno-mmx -mno-avx -msoft-float -mno-implicit-float -ftrap-function=undefined_behavior_has_been_optimized_away_by_clang -funsigned-char -fno-ms-extensions -Wno-null-dereference
