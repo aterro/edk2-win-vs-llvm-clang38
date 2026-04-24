@@ -11,6 +11,8 @@ Modified EDK2 build environment for RefindPlus with Abz-Mods enhancements.
 - Additional boot options and configuration enhancements
 - Build on Windows 11 with LLVM-Clang 38 toolchain
 ## Building
+Download the Build-RefindPlus.bat from releases
+P.S. Place it along with "edk2" in the same folder
 Run `Build-RefindPlus.bat` from the project root:
 ```batch
 Build-RefindPlus.bat         # RELEASE (default)
@@ -30,6 +32,3 @@ Uses LLVM-Clang 38 with the following customizations:
 ## Credits
 Based on RefindPlus by Dayo Akanji & Contributors
 Original by Roderick W. Smith (Portions)
-
-Download the Build-RefindPlus.bat from releases
-P.S. Place it along with "edk2" in the same folder
