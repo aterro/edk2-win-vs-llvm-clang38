@@ -13,6 +13,7 @@ Modified EDK2 build environment for RefindPlus with Abz-Mods enhancements.
 ## Building
 Download the Build-RefindPlus.bat from releases
 P.S. Place it along with "edk2" in the same folder
+
 Run `Build-RefindPlus.bat` from the project root:
 ```batch
 Build-RefindPlus.bat         # RELEASE (default)
