@@ -236,7 +236,7 @@ IsTextShdr (
   Elf_Shdr *Shdr
   )
 {
-  return (BOOLEAN) ((Shdr->sh_flags & (SHF_WRITE | SHF_ALLOC)) == SHF_ALLOC);
+  return (BOOLEAN) ((Shdr->sh_flags & SHF_EXECINSTR) != 0);
 }
 
 STATIC
@@ -341,6 +341,9 @@ ScanSections64 (
 
   CoffEntry = 0;
   mCoffOffset = 0;
+  
+  fprintf(stderr, "DEBUG: Starting ScanSections64\n");
+  fprintf(stderr, "DEBUG: e_shnum = %u, e_machine = %u\n", mEhdr->e_shnum, mEhdr->e_machine);
 
   //
   // Coff file start with a DOS header.
@@ -783,6 +786,16 @@ WriteSections64 (
           switch (ELF_R_TYPE(Rel->r_info)) {
           case R_X86_64_NONE:
             break;
+          case R_X86_64_RELATIVE:
+            //
+            // Relative relocation - addend is the final address value.
+            // Track it in .reloc for the loader to fix up at runtime.
+            //
+            CoffAddFixup(
+              (UINT32) ((UINT64) mCoffSectionsOffset[RelShdr->sh_info]
+              + (Rel->r_offset - SecShdr->sh_addr)),
+              EFI_IMAGE_REL_BASED_DIR64);
+            break;
           case R_X86_64_64:
             //
             // Absolute relocation.
@@ -972,6 +985,12 @@ WriteRelocations64 (
             case R_X86_64_NONE:
             case R_X86_64_PC32:
             case R_X86_64_PLT32:
+              break;
+            case R_X86_64_RELATIVE:
+              CoffAddFixup(
+                (UINT32) ((UINT64) mCoffSectionsOffset[RelShdr->sh_info]
+                + (Rel->r_offset - SecShdr->sh_addr)),
+                EFI_IMAGE_REL_BASED_DIR64);
               break;
             case R_X86_64_64:
               VerboseMsg ("EFI_IMAGE_REL_BASED_DIR64 Offset: 0x%08X",

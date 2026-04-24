@@ -27,15 +27,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 // integers. For this reason they are the only variants supported and are enforced here.
 //
 
-STATIC_ASSERT (
-  sizeof (INTN) == sizeof (INT64) || sizeof (INTN) == sizeof (INT32),
-  "INTN must be 32 or 64 Bits wide."
-  );
-
-STATIC_ASSERT (
-  sizeof (UINTN) == sizeof (UINT64) || sizeof (UINTN) == sizeof (UINT32),
-  "UINTN must be 32 or 64 Bits wide."
-  );
+typedef char STATIC_ASSERT_MSG_INTN[(sizeof(INTN) == sizeof(INT64) || sizeof(INTN) == sizeof(INT32)) ? 1 : -1];
+typedef char STATIC_ASSERT_MSG_UINTN[(sizeof(UINTN) == sizeof(UINT64) || sizeof(UINTN) == sizeof(UINT32)) ? 1 : -1];
 
 BOOLEAN
 (OcOverflowAddUN) (
