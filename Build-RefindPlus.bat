@@ -1,3 +1,4 @@
+set NO_FASTFETCH=1
 @echo off
 REM Build-RefindPlus.bat - Build RefindPlus with CLANG38 toolchain
 REM
@@ -103,7 +104,8 @@ if exist "%ELF_DLL%" (
   echo.
   echo Fixing ELF .text section flags for GenFw...
   "C:\LLVM\bin\llvm-objcopy.exe" --set-section-flags .text=alloc,code,readonly "%ELF_DLL%" "%FIXED_DLL%"
-  "GenFw" -z -e UEFI_APPLICATION -o "%OUTPUT_EFI%" "%FIXED_DLL%"
+  echo Converting to EFI with 4KB alignment and Subsystem 2.00...
+  "GenFw" -z -a 4096 -j 2 -e UEFI_APPLICATION -o "%OUTPUT_EFI%" "%FIXED_DLL%"
   copy /y "%OUTPUT_EFI%" "000-BOOTx64-Files\" >nul
 )
 echo Build complete!! press any key to exit
