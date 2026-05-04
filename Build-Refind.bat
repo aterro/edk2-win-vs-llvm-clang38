@@ -104,7 +104,8 @@ set "TARGET=%~1"
 set "TAG=%~2"
 set "BUILD_DIR=Build\Refind\%TARGET%_CLANG38\X64"
 set "BINARY_DIR=%EDK2_DIR%\%BUILD_DIR%"
-set "OUTPUT_FILE=%OUTPUT_DIR%\BOOTx64-%TAG%.efi"
+set "OUTPUT_FILE=%OUTPUT_DIR%\Refind.efi"
+if /I not "%TAG%"=="REL" set "OUTPUT_FILE=%OUTPUT_DIR%\Refind_%TAG%.efi"
 
 C:\Python27\python.exe BaseTools\Source\Python\build\build.py -a X64 -b %TARGET% -t CLANG38 -p RefindPkg\RefindPkg.dsc
 if errorlevel 1 (
@@ -133,7 +134,7 @@ if not exist "%OUTPUT_EFI%" (
   exit /b 1
 )
 
-echo Copying BOOTx64-%TAG%.efi...
+echo Copying %OUTPUT_FILE%...
 copy /y "%OUTPUT_EFI%" "%OUTPUT_FILE%" >nul
 if errorlevel 1 exit /b 1
 echo   Copied: %OUTPUT_FILE%
