@@ -4,10 +4,13 @@ REM Build-Refind.bat - Build rEFInd with CLANG38 toolchain
 REM
 REM Place this script in the edk2 root directory and run:
 REM   Build-Refind.bat         - Build RELEASE (default)
+REM   Build-Refind.bat RELEASE - Build RELEASE
 REM   Build-Refind.bat REL     - Build RELEASE
+REM   Build-Refind.bat DEBUG   - Build DEBUG
 REM   Build-Refind.bat DBG     - Build DEBUG
+REM   Build-Refind.bat NOOPT   - Build NOOPT
 REM   Build-Refind.bat NPT     - Build NOOPT
-REM   Build-Refind.bat ALL     - Build all (REL, DBG, NOOPT)
+REM   Build-Refind.bat ALL     - Build all (RELEASE, DEBUG, NOOPT)
 
 setlocal EnableExtensions EnableDelayedExpansion
 
@@ -19,7 +22,11 @@ set "WORKSPACE=%EDK2_DIR%"
 set "OUTPUT_DIR=%EDK2_DIR%\000-BOOTx64-Files"
 
 set "BUILD_TYPE=%~1"
-if not defined BUILD_TYPE set "BUILD_TYPE=REL"
+if not defined BUILD_TYPE set "BUILD_TYPE=RELEASE"
+
+if /I "%BUILD_TYPE%"=="RELEASE" set "BUILD_TYPE=REL"
+if /I "%BUILD_TYPE%"=="DEBUG" set "BUILD_TYPE=DBG"
+if /I "%BUILD_TYPE%"=="NOOPT" set "BUILD_TYPE=NPT"
 
 set "RUN_REL=0"
 set "RUN_DBG=0"
@@ -36,6 +43,7 @@ if /I "%BUILD_TYPE%"=="REL" (
   set "RUN_DBG=1"
   set "RUN_NPT=1"
 ) else (
+  echo Unknown build type "%~1", defaulting to RELEASE.
   set "RUN_REL=1"
 )
 
